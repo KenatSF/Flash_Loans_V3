@@ -42,7 +42,7 @@ To deploy the contract into the Ethereum-Mainnet, run:
 $ truffle migrate --network ethereum_mainnet
 ```
 
-Before you deploy it, you should uncomment the line 383 in the Flashy.sol file. 
+Before you deploy it, you should uncomment the line 396 in the Flashy.sol file. 
 With this modification the contract can make the respective fee payment to the minner. Also, you can withdraw the profit of the transaction based on the percentage you pass it. Percentage recommended: 80% minner & 20% you, but remember it depends on the profit you are making.
 <br />
 <br />
