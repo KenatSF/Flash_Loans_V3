@@ -132,6 +132,12 @@ contract newFilter {
         UNIV2_SUSHI,           
         SUSHI_UNIV2
     }
+
+    enum DEX_Selection {
+        SUSHI,
+        UNIV2,
+        UNIV3
+    }
 }
 
 // Contract
@@ -211,23 +217,21 @@ contract Flashy is FlashLoanReceiverBase,  newFilter {
         return check;
     }
 
-
-    //###############################   Function to change      *
     function withdraw_filter(address _token, uint8 _percentage, uint8 _dex, uint24 _dexfee) public onlyOwner returns (bool) {
         if (_token == address(weth)) {
             return withdraw_weth(_percentage);
         } else {
-            // The lines below are not the best way to follow, due to increasing of txs but the payment for the minner is only allowed with WETH
-            require((0 < _dex) && (_dex < 4), "Invalid dex option for withdraw ETH!");
-            if (_dex == 1) {
+            // The lines below are not the best way to proceed, because of we've aumented the number of txs however the payment for the minner is only allowed with WETH
+            require((0 <= _dex) && (_dex < 3), "Invalid dex option for withdraw ETH!");
+            if (DEX_Selection.SUSHI == DEX_Selection(_dex)) {
                 sushi(_token, address(weth), IERC20(_token).balanceOf(address(this)));
                 return withdraw_weth(_percentage);
             }
-            if (_dex == 2) {
+            if (DEX_Selection.UNIV2 == DEX_Selection(_dex)) {
                 uni_v2(_token, address(weth), IERC20(_token).balanceOf(address(this)));
                 return withdraw_weth(_percentage);
             }
-            if (_dex == 3) {
+            if (DEX_Selection.UNIV3 == DEX_Selection(_dex)) {
                 require((_dexfee == 500) || (_dexfee == 3000) || (_dexfee == 10000), "Invalid fee for swapping in UniV3");
                 uni_v3(_token, address(weth), IERC20(_token).balanceOf(address(this)), _dexfee);
                 return withdraw_weth(_percentage);
@@ -290,7 +294,6 @@ contract Flashy is FlashLoanReceiverBase,  newFilter {
     }
 
 
-    //############################## Function to change     *
     function arb_swap(address _asset01, address _asset02, uint256 _amount, uint8 _dex_path, uint24 _fee) public {
         require((0 <= _dex_path) && (_dex_path < 6), "Invalid dex option for an arbitrage!");
         if (DEX_PATH.UNIV3_UNIV2 == DEX_PATH(_dex_path)) {
@@ -389,7 +392,7 @@ contract Flashy is FlashLoanReceiverBase,  newFilter {
 
         _flashloan(assets, amounts);
 
-        // The line below is just commented for testing purposes
+        // The line below is only commented for testing purposes
         //withdraw_filter(_asset01, _percentage, _withdraw_path, _withdraw_fee);
     }
 
