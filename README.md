@@ -1,4 +1,4 @@
-# Aave Flash Loan and arb_swap 
+# Aave Flash Loan and Arbitrage swaps 
 
 ## Dependencies
 
@@ -16,17 +16,18 @@ Packages and their versions are in the "package.json" file
 * [Flashbots ](https://github.com/flashbots)
 
 ## Testing
+The test is optimized to get a successful arbitrage transaction. 
 
-The testing is optimized for a successful arbitrage with a Flash Loan. 
+Follow the steps.
 
-Before running the test you should run in a console:
+Write in a console the next line:
 
 ```
-ganache-cli --fork EthereumNode-URL@13027545 --unlock 0xE8E8f41Ed29E46f34E206D7D2a7D6f735A3FF2CB 
+ganache-cli --fork Ethereum-Node-URL@13027545 --unlock 0xE8E8f41Ed29E46f34E206D7D2a7D6f735A3FF2CB 
 ```
-(The block number is important for the testing).
+(You could use [Infura](https://www.infura.io/) for the node. Also, the block number is important for the test.)
 
-Then, to run the test:
+Then, write in a different console within the root directory of the repository:
 
 ```
 truffle test 
@@ -35,10 +36,18 @@ truffle test
 
 ## Deployment 
 
-To deploy the contract to the Ethereum-Mainnet, run:
+To deploy the contract into the Ethereum-Mainnet, run:
 
 ```bash
 $ truffle migrate --network ethereum_mainnet
 ```
 
-Before deploy it, you should uncomment the line 383 in the Flashy.sol file, this will allow to the contract make the fee payment to the minner and also you will be able to withdraw the profit according the percentage you pass it, percentage recommended: 80% minner & 20% you.
+Before you deploy it, you should uncomment the line 383 in the Flashy.sol file. 
+With this modification the contract can make the respective fee payment to the minner. Also, you can withdraw the profit of the transaction based on the percentage you pass it. Percentage recommended: 80% minner & 20% you, but remember it depends on the profit you are making.
+<br />
+<br />
+<br />
+
+**Note: Although in this repository I'm using [Truffle](https://github.com/trufflesuite/truffle) , I really recommend you to use [Foundry](https://github.com/foundry-rs/foundry)  for your projects. It's a better tool than [Truffle](https://github.com/trufflesuite/truffle) or even [Hardhat](https://github.com/NomicFoundation/hardhat).**
+
+**Good Luck! ;)**
