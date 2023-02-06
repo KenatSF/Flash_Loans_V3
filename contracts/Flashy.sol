@@ -123,8 +123,19 @@ interface ISwapRouter is IUniswapV3SwapCallback {
     function exactInput(ExactInputParams calldata params) external payable returns (uint256 amountOut);
 }
 
+contract newFilter {
+    enum DEX_PATH {
+        UNIV3_UNIV2,                
+        UNIV3_SUSHI,              
+        UNIV2_UNIV3,             
+        SUSHI_UNIV3,            
+        UNIV2_SUSHI,           
+        SUSHI_UNIV2
+    }
+}
+
 // Contract
-contract Flashy is FlashLoanReceiverBase {
+contract Flashy is FlashLoanReceiverBase,  newFilter {
     address payable owner;
     using SafeMath for uint;
 
@@ -200,6 +211,8 @@ contract Flashy is FlashLoanReceiverBase {
         return check;
     }
 
+
+    //###############################   Function to change      *
     function withdraw_filter(address _token, uint8 _percentage, uint8 _dex, uint24 _dexfee) public onlyOwner returns (bool) {
         if (_token == address(weth)) {
             return withdraw_weth(_percentage);
@@ -276,33 +289,30 @@ contract Flashy is FlashLoanReceiverBase {
         uni_router_v3.exactInputSingle(params);
     }
 
+
+    //############################## Function to change     *
     function arb_swap(address _asset01, address _asset02, uint256 _amount, uint8 _dex_path, uint24 _fee) public {
-        require((0 < _dex_path) && (_dex_path < 7), "Invalid dex option for arbitrage!");
-        if (_dex_path == 1) {
+        require((0 <= _dex_path) && (_dex_path < 6), "Invalid dex option for an arbitrage!");
+        if (DEX_PATH.UNIV3_UNIV2 == DEX_PATH(_dex_path)) {
             require((_fee == 500) || (_fee == 3000) || (_fee == 10000), "Invalid fee for swapping in UniV3");
             uni_v3(_asset01, _asset02, _amount, _fee);
             uni_v2(_asset02, _asset01, IERC20(_asset02).balanceOf(address(this)));
-        }
-        if (_dex_path == 2) {
+        } else if (DEX_PATH.UNIV3_SUSHI == DEX_PATH(_dex_path)) {
             require((_fee == 500) || (_fee == 3000) || (_fee == 10000), "Invalid fee for swapping in UniV3");
             uni_v3(_asset01, _asset02, _amount, _fee);
             sushi(_asset02, _asset01, IERC20(_asset02).balanceOf(address(this)));            
-        }
-        if ( _dex_path == 3) {
+        } else if (DEX_PATH.UNIV2_UNIV3 == DEX_PATH(_dex_path)) {
             require((_fee == 500) || (_fee == 3000) || (_fee == 10000), "Invalid fee for swapping in UniV3");
             uni_v2(_asset01, _asset02, _amount);
             uni_v3(_asset02, _asset01, IERC20(_asset02).balanceOf(address(this)), _fee);
-        }
-        if (_dex_path == 4) {
+        } else if (DEX_PATH.SUSHI_UNIV3 == DEX_PATH(_dex_path)) {
             require((_fee == 500) || (_fee == 3000) || (_fee == 10000), "Invalid fee for swapping in UniV3");
             sushi(_asset01, _asset02, _amount);
             uni_v3(_asset02, _asset01, IERC20(_asset02).balanceOf(address(this)), _fee);
-        }
-        if (_dex_path == 5) {
+        } else if (DEX_PATH.UNIV2_SUSHI == DEX_PATH(_dex_path)) {
             uni_v2(_asset01, _asset02, _amount);
             sushi(_asset02, _asset01, IERC20(_asset02).balanceOf(address(this)));
-        }
-        if (_dex_path == 6) {
+        } else if (DEX_PATH.SUSHI_UNIV2 == DEX_PATH(_dex_path)) {
             sushi(_asset01, _asset02, _amount);
             uni_v2(_asset02, _asset01, IERC20(_asset02).balanceOf(address(this)));
         }

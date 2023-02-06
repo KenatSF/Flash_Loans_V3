@@ -233,7 +233,7 @@ contract('Flash Loan: Aave with Sushiswap, Uniswap V2 & Uniswap V3', () => {
 
         console.log('-----------------------------------------------------------');
         console.log("Flash Loan.")
-        await contract.flash_loan(token_name_erc20['WETH'], token_name_erc20['TOKE'], amount_In_filter(flashloan_amount), 5, 0, 0, 0, 50);
+        await contract.flash_loan(token_name_erc20['WETH'], token_name_erc20['TOKE'], amount_In_filter(flashloan_amount), 4, 0, 0, 0, 50);
 
         
         console.log('-----------------------------------------------------------');
