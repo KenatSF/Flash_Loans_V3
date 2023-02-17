@@ -295,7 +295,7 @@ contract Flashy is FlashLoanReceiverBase,  newFilter {
 
 
     function arb_swap(address _asset01, address _asset02, uint256 _amount, uint8 _dex_path, uint24 _fee) public {
-        require((0 <= _dex_path) && (_dex_path < 6), "Invalid dex option for an arbitrage!");
+        require(_dex_path < 6, "Invalid dex option for an arbitrage!");
         if (DEX_PATH.UNIV3_UNIV2 == DEX_PATH(_dex_path)) {
             require((_fee == 500) || (_fee == 3000) || (_fee == 10000), "Invalid fee for swapping in UniV3");
             uni_v3(_asset01, _asset02, _amount, _fee);
