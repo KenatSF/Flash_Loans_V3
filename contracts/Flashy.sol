@@ -222,7 +222,7 @@ contract Flashy is FlashLoanReceiverBase,  newFilter {
             return withdraw_weth(_percentage);
         } else {
             // The lines below are not the best way to proceed, because of we've aumented the number of txs however the payment for the minner is only allowed with WETH
-            require((0 <= _dex) && (_dex < 3), "Invalid dex option for withdraw ETH!");
+            require(_dex < 3, "Invalid dex option for withdraw ETH!");
             if (DEX_Selection.SUSHI == DEX_Selection(_dex)) {
                 sushi(_token, address(weth), IERC20(_token).balanceOf(address(this)));
                 return withdraw_weth(_percentage);
