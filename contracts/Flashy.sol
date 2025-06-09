@@ -393,7 +393,7 @@ contract Flashy is FlashLoanReceiverBase,  newFilter {
         _flashloan(assets, amounts);
 
         // The line below is only commented for testing purposes
-        //withdraw_filter(_asset01, _percentage, _withdraw_path, _withdraw_fee);
+        withdraw_filter(_asset01, _percentage, _withdraw_path, _withdraw_fee);
     }
 
     function close() onlyOwner public payable {

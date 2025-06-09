@@ -1,23 +1,12 @@
-// For a successfull flashloan the blocknumber is required at: 13027545 
+// For a successfull flashloan the blocknumber is required at: 22429499
+
+const { amount_In_filter, amount_Out_filter, erc20_approve, erc20_transfer, erc20_balance, weth_withdraw, getAmountsOut_router_v2, swap_router_v2, erc20_allowance } = require('./utils');
 
 const IERC20 = artifacts.require("IERC20");
 const flash = artifacts.require("Flashy");
 
 const path = require('path')
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') })
-
-const Web3 = require('Web3');
-url = 'http://localhost:8545'
-const web3 = new Web3(url);
-
-// ###################################################################################      Functions for converting uint format to decimal and vice versa
-function amount_In_filter(n) {
-    return web3.utils.toWei(n.toString(), "ether");
-}
-
-function amount_Out_filter(n) {
-    return web3.utils.fromWei(n.toString(), "ether");
-}
 
 // ###################################################################################      Required addresses
 
@@ -50,155 +39,185 @@ function swaping_keys(json){
 
 const token_address_erc20 = swaping_keys(token_name_erc20);
 
-const my_address = process.env.ADDRESS_PRIVATE_KEY_TEST1;
 
 
 // Note: Maximum 4 accounts for unlocking
 const whales = {
     'DAI': '0x38720D56899d46cAD253d08f7cD6CC89d2c83190',
     'COTI': '0xBDcB703937a71a01E5287cE6F5f2E12567133d1E', 
-    'WETH': '0xE8E8f41Ed29E46f34E206D7D2a7D6f735A3FF2CB',
+    'WETH': '0xE68d531d8B4d035bf3F4BC2DaBb70f51FbB14E23',
     'RARI': '0x72A53cDBBcc1b9efa39c834A540550e23463AAcB', 
     'USDC': '0xBE0eB53F46cd790Cd13851d5EFf43D12404d33E8'
 };
 
 const defi = {
-    'UNI_ROUTER': '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
+    'UNI_V2_ROUTER': '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
     'SUSHI_ROUTER': '0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F',
     'UNI_ROUTER3': '0xE592427A0AEce92De3Edee1F18E0157C05861564',
+    'UNI_V3_ROUTER': '0xE592427A0AEce92De3Edee1F18E0157C05861564',
+    'UNI_V3_ROUTER2': '0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45',
     'AAVE': '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5'
 };
 
 
+
 // ###################################################################################      Testing
-contract('Flash Loan: Aave with Sushiswap, Uniswap V2 & Uniswap V3', () => {
+contract('Flash Loan: Aave with Sushiswap & Uniswap V2', () => {
     //it('Front-running part', async () => {
     //    console.log('----------It separation ----------------------------------------------------------------------------------------------');
     //});
 
-    it('Simulated swap on Sushiswap', async () => {
-        console.log("Swapping on Sushiswap");
-        console.log('-----------------------------------------------------------------------------------------------------------');
+    beforeEach(async () => {
+        const accounts = await web3.eth.personal.getAccounts();
+        const my_address = accounts[9]
         // Deploy contracts
-        const weth = await IERC20.at(token_name_erc20['WETH']);
-        const toke = await IERC20.at(token_name_erc20['TOKE']);
+        weth = await IERC20.at(token_name_erc20['WETH']);
+        toke = await IERC20.at(token_name_erc20['TOKE']);
+        contract = await flash.new(my_address, defi['AAVE'], {from: my_address});
+      });
+    
 
-        const swapping = await flash.new(my_address, defi['AAVE']);
-        console.log('-----------------------------------------------------------');
-        console.log('Contract address: ', swapping.address);
 
-        // Amount to fund contract for swapping for token TOKE:
-        const funding_amount = 39.8616379045;
+    it('Swap simulated on Uniswap', async () => {
+        const accounts = await web3.eth.personal.getAccounts();
+        const account_address = accounts[1];
+
+        console.log("Swapping on Uniswap");
+
+        // WEHT amount to fund contract for swapping for token TOKE:
+        const funding_amount = 100;
         
-
+        // Variables
         var weth_account_balance, eth_account_balance, toke_account_balance;
         var weth_contract_balance, eth_contract_balance, toke_contract_balance;
+        // Extra variables, amount_allowed;
+        var amount_allowed, amount_allowed_1;
  
 
         console.log('-----------------------------------------------------------');
         console.log('First Balance Check');
 
         // Account:
-        weth_account_balance = await weth.balanceOf(my_address)
-        eth_account_balance = await web3.eth.getBalance(my_address);
-        toke_account_balance = await toke.balanceOf(my_address);
+        weth_account_balance = await erc20_balance(web3, token_name_erc20['WETH'], account_address, 18);
+        eth_account_balance = await web3.eth.getBalance(account_address);
+        toke_account_balance = await erc20_balance(web3, token_name_erc20['TOKE'], account_address, 18);
         
-        // Contract: 
-        weth_contract_balance = await weth.balanceOf(swapping.address);
-        eth_contract_balance = await web3.eth.getBalance(swapping.address);
-        toke_contract_balance = await toke.balanceOf(swapping.address);
-
         console.log(" ");
         console.log('Account: ');
-        console.log(`${token_address_erc20[weth.address]} balance of my account :${amount_Out_filter(weth_account_balance)}`);
-        console.log(`ETH balance of my account :${amount_Out_filter(eth_account_balance)}`);
-        console.log(`${token_address_erc20[toke.address]} balance of my account :${amount_Out_filter(toke_account_balance)}`);
-        console.log(" ");
-        console.log('Contract: ');
-        console.log(`${token_address_erc20[weth.address]} balance of my contract :${amount_Out_filter(weth_contract_balance)}`);
-        console.log(`ETH balance of my contract :${amount_Out_filter(eth_contract_balance)}`);
-        console.log(`${token_address_erc20[toke.address]} balance of my contract :${amount_Out_filter(toke_contract_balance)}`);
+        console.log(`${token_address_erc20[weth.address]} balance of my account :${weth_account_balance}`);
+        console.log(`ETH balance of my account :${amount_Out_filter(web3, eth_account_balance, 18)}`);
+        console.log(`${token_address_erc20[toke.address]} balance of my account :${toke_account_balance}`);
         console.log(" ");
 
 
         console.log('-----------------------------------------------------------');
-        console.log('Funding contract with WETH: ');
-        await weth.transfer(swapping.address, amount_In_filter(funding_amount), {from: whales['WETH']});
-        
+        console.log('Funding account with WETH: ');
+        await erc20_transfer(web3, token_name_erc20['WETH'], whales['WETH'], account_address, funding_amount, 18);
 
         console.log('-----------------------------------------------------------');
         console.log('Second Balance Check');
 
         // Account:
-        weth_account_balance = await weth.balanceOf(my_address)
-        eth_account_balance = await web3.eth.getBalance(my_address);
-        toke_account_balance = await toke.balanceOf(my_address);
-        
-        // Contract: 
-        weth_contract_balance = await weth.balanceOf(swapping.address);
-        eth_contract_balance = await web3.eth.getBalance(swapping.address);
-        toke_contract_balance = await toke.balanceOf(swapping.address);
+        weth_account_balance = await weth.balanceOf(account_address)
+        eth_account_balance = await web3.eth.getBalance(account_address);
+        toke_account_balance = await toke.balanceOf(account_address);
 
         console.log(" ");
         console.log('Account: ');
-        console.log(`${token_address_erc20[weth.address]} balance of my account :${amount_Out_filter(weth_account_balance)}`);
-        console.log(`ETH balance of my account :${amount_Out_filter(eth_account_balance)}`);
-        console.log(`${token_address_erc20[toke.address]} balance of my account :${amount_Out_filter(toke_account_balance)}`);
+        console.log(`${token_address_erc20[weth.address]} balance of my account :${amount_Out_filter(web3, weth_account_balance, 18)}`);
+        console.log(`ETH balance of my account :${amount_Out_filter(web3, eth_account_balance, 18)}`);
+        console.log(`${token_address_erc20[toke.address]} balance of my account :${amount_Out_filter(web3, toke_account_balance, 18)}`);
         console.log(" ");
-        console.log('Contract: ');
-        console.log(`${token_address_erc20[weth.address]} balance of my contract :${amount_Out_filter(weth_contract_balance)}`);
-        console.log(`ETH balance of my contract :${amount_Out_filter(eth_contract_balance)}`);
-        console.log(`${token_address_erc20[toke.address]} balance of my contract :${amount_Out_filter(toke_contract_balance)}`);
+
+
+        console.log('-----------------------------------------------------------');
+        console.log('First amount approved check');
+        amount_allowed = await erc20_allowance(web3, token_name_erc20['WETH'], account_address, defi['SUSHI_ROUTER']);
+        amount_allowed_1 = await erc20_allowance(web3, token_name_erc20['WETH'], account_address, defi['UNI_V3_ROUTER2']);    
+        console.log(`Amount: ${amount_allowed} approved from: ${account_address} to: Sushi`);
+        console.log(`Amount: ${amount_allowed_1} approved from: ${account_address} to: Uni_V3`);
+        console.log(" ");
+
+
+        console.log('-----------------------------------------------------------');
+        console.log('First Approving amount to spender');
+        await erc20_approve(web3, token_name_erc20['WETH'], account_address, defi['SUSHI_ROUTER'], funding_amount, 18);
+        await erc20_approve(web3, token_name_erc20['WETH'], account_address, defi['UNI_V3_ROUTER2'], funding_amount + 5, 18);
+        const amount_expected = await getAmountsOut_router_v2(web3, defi['SUSHI_ROUTER'], funding_amount, 18, [token_name_erc20['WETH'], token_name_erc20['TOKE']], 18);
+        console.log(" ");
+
+
+        console.log('-----------------------------------------------------------');
+        console.log('Second amount approved check');
+        amount_allowed = await erc20_allowance(web3, token_name_erc20['WETH'], account_address, defi['SUSHI_ROUTER']);
+        amount_allowed_1 = await erc20_allowance(web3, token_name_erc20['WETH'], account_address, defi['UNI_V3_ROUTER2']);   
+        console.log(`Amount: ${amount_allowed} approved from: ${account_address} to: Sushi`);
+        console.log(`Amount: ${amount_allowed_1} approved from: ${account_address} to: Uni_V3`);
         console.log(" ");
 
 
         console.log('-----------------------------------------------------------');
         console.log('Swapping WETH for TOKE: ');
-        await swapping.sushi(token_name_erc20['WETH'], token_name_erc20['TOKE'], amount_In_filter(funding_amount));
+        await swap_router_v2(web3, defi['SUSHI_ROUTER'], funding_amount, 18, amount_expected, 18, [token_name_erc20['WETH'], token_name_erc20['TOKE']], account_address);
+        console.log(" ");
+
+
+        console.log('-----------------------------------------------------------');
+        console.log('Third amount approved check');
+        amount_allowed = await erc20_allowance(web3, token_name_erc20['WETH'], account_address, defi['SUSHI_ROUTER']);
+        amount_allowed_1 = await erc20_allowance(web3, token_name_erc20['WETH'], account_address, defi['UNI_V3_ROUTER2']);
+        console.log(`Amount: ${amount_allowed} approved from: ${account_address} to: Sushi`);
+        console.log(`Amount: ${amount_allowed_1} approved from: ${account_address} to: Uni_V3`);
+        console.log(" ");
+
+
+        console.log('-----------------------------------------------------------');
+        console.log('Second Approving amount to spender (Reverting amount approved)');
+        await erc20_approve(web3, token_name_erc20['WETH'], account_address, defi['UNI_V3_ROUTER2'], 0, 18);
+        console.log(" ");
+
+
+        console.log('-----------------------------------------------------------');
+        console.log('Fourth amount approved check');
+        amount_allowed = await erc20_allowance(web3, token_name_erc20['WETH'], account_address, defi['SUSHI_ROUTER']);
+        amount_allowed_1 = await erc20_allowance(web3, token_name_erc20['WETH'], account_address, defi['UNI_V3_ROUTER2']);
+        console.log(`Amount: ${amount_allowed} approved from: ${account_address} to: Sushi`);
+        console.log(`Amount: ${amount_allowed_1} approved from: ${account_address} to: Uni_V3`);
+        console.log(" ");
 
 
         console.log('-----------------------------------------------------------');
         console.log('Third Balance Check');
 
         // Account:
-        weth_account_balance = await weth.balanceOf(my_address)
-        eth_account_balance = await web3.eth.getBalance(my_address);
-        toke_account_balance = await toke.balanceOf(my_address);
+        weth_account_balance = await weth.balanceOf(account_address)
+        eth_account_balance = await web3.eth.getBalance(account_address);
+        toke_account_balance = await toke.balanceOf(account_address);
         
-        // Contract: 
-        weth_contract_balance = await weth.balanceOf(swapping.address);
-        eth_contract_balance = await web3.eth.getBalance(swapping.address);
-        toke_contract_balance = await toke.balanceOf(swapping.address);
-
         console.log(" ");
         console.log('Account: ');
-        console.log(`${token_address_erc20[weth.address]} balance of my account :${amount_Out_filter(weth_account_balance)}`);
-        console.log(`ETH balance of my account :${amount_Out_filter(eth_account_balance)}`);
-        console.log(`${token_address_erc20[toke.address]} balance of my account :${amount_Out_filter(toke_account_balance)}`);
-        console.log(" ");
-        console.log('Contract: ');
-        console.log(`${token_address_erc20[weth.address]} balance of my contract :${amount_Out_filter(weth_contract_balance)}`);
-        console.log(`ETH balance of my contract :${amount_Out_filter(eth_contract_balance)}`);
-        console.log(`${token_address_erc20[toke.address]} balance of my contract :${amount_Out_filter(toke_contract_balance)}`);
+        console.log(`${token_address_erc20[weth.address]} balance of my account :${amount_Out_filter(web3, weth_account_balance, 18)}`);
+        console.log(`ETH balance of my account :${amount_Out_filter(web3, eth_account_balance, 18)}`);
+        console.log(`${token_address_erc20[toke.address]} balance of my account :${amount_Out_filter(web3, toke_account_balance, 18)}`);
         console.log(" ");
 
-        console.log('---------- END           ----------------------------------------------------------------------------------------------');
+
+        console.log('---------- END           ---------------------------------------');
+
+        
     });
 
   
-    it('Simulated Flash Loan', async () => {
-        console.log("Flash loan and arbitrage swapping");
-        console.log('-----------------------------------------------------------------------------------------------------------');
-        // Deploy contracts
-        const weth = await IERC20.at(token_name_erc20['WETH']);
-        const toke = await IERC20.at(token_name_erc20['TOKE']);
+    it('Flash Loan simulated', async () => {
+        const accounts = await web3.eth.personal.getAccounts();
+        const my_address = accounts[9]
 
-        const contract = await flash.new(my_address, defi['AAVE']);
-        console.log('-----------------------------------------------------------');
+        console.log("Flash loan and arbitrage swapping");
+        console.log('--------------------------------------------------------------');
         console.log('Contract address: ', contract.address);
 
-        // Amount for borrowing from Aave lending Pool Provider:
-        const flashloan_amount = 14.036556890115856282;
+        // Amount borrowed from Aave lending Pool Provider:
+        const flashloan_amount = 5;
         
 
         var weth_account_balance, eth_account_balance, toke_account_balance;
@@ -220,20 +239,30 @@ contract('Flash Loan: Aave with Sushiswap, Uniswap V2 & Uniswap V3', () => {
 
         console.log(" ");
         console.log('Account: ');
-        console.log(`${token_address_erc20[weth.address]} balance of my account :${amount_Out_filter(weth_account_balance)}`);
-        console.log(`ETH balance of my account :${amount_Out_filter(eth_account_balance)}`);
-        console.log(`${token_address_erc20[toke.address]} balance of my account :${amount_Out_filter(toke_account_balance)}`);
+        console.log(`${token_address_erc20[weth.address]} balance of my account :${amount_Out_filter(web3, weth_account_balance, 18)}`);
+        console.log(`ETH balance of my account :${amount_Out_filter(web3, eth_account_balance, 18)}`);
+        console.log(`${token_address_erc20[toke.address]} balance of my account :${amount_Out_filter(web3, toke_account_balance, 18)}`);
         console.log(" ");
         console.log('Contract: ');
-        console.log(`${token_address_erc20[weth.address]} balance of my contract :${amount_Out_filter(weth_contract_balance)}`);
-        console.log(`ETH balance of my contract :${amount_Out_filter(eth_contract_balance)}`);
-        console.log(`${token_address_erc20[toke.address]} balance of my contract :${amount_Out_filter(toke_contract_balance)}`);
+        console.log(`${token_address_erc20[weth.address]} balance of my contract :${amount_Out_filter(web3, weth_contract_balance, 18)}`);
+        console.log(`ETH balance of my contract :${amount_Out_filter(web3, eth_contract_balance, 18)}`);
+        console.log(`${token_address_erc20[toke.address]} balance of my contract :${amount_Out_filter(web3, toke_contract_balance, 18)}`);
         console.log(" ");
 
 
         console.log('-----------------------------------------------------------');
         console.log("Flash Loan.")
-        await contract.flash_loan(token_name_erc20['WETH'], token_name_erc20['TOKE'], amount_In_filter(flashloan_amount), 4, 0, 0, 0, 50);
+        await contract.flash_loan(
+                                    token_name_erc20['WETH'],
+                                    token_name_erc20['TOKE'],
+                                    amount_In_filter(web3, flashloan_amount, 18),
+                                    4,
+                                    0,
+                                    0,
+                                    0,
+                                    20,
+                                    {from: my_address}
+                                 );
 
         
         console.log('-----------------------------------------------------------');
@@ -251,15 +280,16 @@ contract('Flash Loan: Aave with Sushiswap, Uniswap V2 & Uniswap V3', () => {
 
         console.log(" ");
         console.log('Account: ');
-        console.log(`${token_address_erc20[weth.address]} balance of my account :${amount_Out_filter(weth_account_balance)}`);
-        console.log(`ETH balance of my account :${amount_Out_filter(eth_account_balance)}`);
-        console.log(`${token_address_erc20[toke.address]} balance of my account :${amount_Out_filter(toke_account_balance)}`);
+        console.log(`${token_address_erc20[weth.address]} balance of my account :${amount_Out_filter(web3, weth_account_balance, 18)}`);
+        console.log(`ETH balance of my account :${amount_Out_filter(web3, eth_account_balance, 18)}`);
+        console.log(`${token_address_erc20[toke.address]} balance of my account :${amount_Out_filter(web3, toke_account_balance, 18)}`);
         console.log(" ");
         console.log('Contract: ');
-        console.log(`${token_address_erc20[weth.address]} balance of my contract :${amount_Out_filter(weth_contract_balance)}`);
-        console.log(`ETH balance of my contract :${amount_Out_filter(eth_contract_balance)}`);
-        console.log(`${token_address_erc20[toke.address]} balance of my contract :${amount_Out_filter(toke_contract_balance)}`);
+        console.log(`${token_address_erc20[weth.address]} balance of my contract :${amount_Out_filter(web3, weth_contract_balance, 18)}`);
+        console.log(`ETH balance of my contract :${amount_Out_filter(web3, eth_contract_balance, 18)}`);
+        console.log(`${token_address_erc20[toke.address]} balance of my contract :${amount_Out_filter(web3, toke_contract_balance, 18)}`);
         console.log(" ");
+
 
 
         console.log('---------- END           ----------------------------------------------------------------------------------------------');

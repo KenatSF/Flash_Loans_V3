@@ -23,9 +23,9 @@ Follow the steps.
 Write in a console the next line:
 
 ```
-$ ganache-cli --fork Ethereum-Node-URL@13027545 --unlock 0xE8E8f41Ed29E46f34E206D7D2a7D6f735A3FF2CB 
+$ ganache-cli --fork Ethereum-Node-URL@22429499 --unlock 0xE68d531d8B4d035bf3F4BC2DaBb70f51FbB14E23 
 ```
-(You could use [Infura](https://www.infura.io/) for the node. Also, the block number is important for the test.)
+(You can use [Infura](https://www.infura.io/) for the node. Also, the block number is important for the test.)
 
 Then, write in a different console within the root directory of the repository:
 
@@ -42,8 +42,6 @@ To deploy the contract into the Ethereum-Mainnet, run:
 $ truffle migrate --network ethereum_mainnet
 ```
 
-Before you deploy it, you should uncomment the line 396 in the Flashy.sol file. 
-With this modification the contract can make the respective fee payment to the minner. Also, you can withdraw the profit of the transaction based on the percentage you pass it. Percentage recommended: 80% minner & 20% you, but obviously it depends on the profit you're making, if it's a huge profit, that percentege to the miner could be considerably smaller.
 <br />
 <br />
 <br />
